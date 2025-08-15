@@ -202,7 +202,7 @@ def display_time_and_weather():
             draw.text((8, y_bottom), date_str, font=font_large, fill=0)
             
             # Middle section - Temperature details
-            middle_x = 85
+            middle_x = 100
             feels_text = f"Feels {weather['feels_like']}°"
             draw.text((middle_x, y_bottom), feels_text, font=font_small, fill=0)
             
