@@ -49,20 +49,55 @@ def save_weather_cache(weather_data):
 def get_pi_power():
     """Get Pi's power consumption"""
     try:
-        # Read voltage from the Pi
-        with open('/sys/class/hwmon/hwmon0/in1_input', 'r') as f:
-            voltage = float(f.read()) / 1000  # Convert to volts
+        # Try multiple possible locations for voltage reading
+        voltage_paths = [
+            '/sys/class/hwmon/hwmon0/in1_input',
+            '/sys/class/hwmon/hwmon1/in1_input', 
+            '/sys/firmware/devicetree/base/chosen/power/regulator-min-microvolt',
+            '/proc/device-tree/chosen/power/regulator-min-microvolt'
+        ]
         
-        # Estimate current based on Pi model (Zero 2W typically draws 0.4-0.8A)
-        estimated_current = 0.6  # Amps (rough estimate for Pi Zero 2W)
-        power_watts = voltage * estimated_current
+        voltage = None
+        for path in voltage_paths:
+            try:
+                with open(path, 'r') as f:
+                    value = float(f.read().strip())
+                    if path.endswith('in1_input'):
+                        voltage = value / 1000  # Convert to volts
+                    else:
+                        voltage = value / 1000000  # Convert from microvolts
+                    print(f"Found voltage at {path}: {voltage}V")
+                    break
+            except:
+                continue
         
-        return {
-            'voltage': round(voltage, 1),
-            'power': round(power_watts, 1),
-            'current': estimated_current
-        }
-    except:
+        if voltage is None:
+            # Try reading from vcgencmd (Raspberry Pi specific)
+            import subprocess
+            result = subprocess.run(['vcgencmd', 'measure_volts', 'core'], 
+                                  capture_output=True, text=True)
+            if result.returncode == 0:
+                # Output format: "volt=1.2000V"
+                voltage_str = result.stdout.strip().split('=')[1].replace('V', '')
+                voltage = float(voltage_str)
+                print(f"Found voltage via vcgencmd: {voltage}V")
+        
+        if voltage:
+            # Estimate current based on Pi model (Zero 2W typically draws 0.4-0.8A)
+            estimated_current = 0.6  # Amps
+            power_watts = voltage * estimated_current
+            
+            return {
+                'voltage': round(voltage, 1),
+                'power': round(power_watts, 1),
+                'current': estimated_current
+            }
+        else:
+            print("Could not find voltage reading")
+            return None
+            
+    except Exception as e:
+        print(f"Power monitoring error: {e}")
         return None
 
 def get_weather():
