@@ -285,7 +285,7 @@ def display_time_and_weather():
             if uv <= 2:
                 uv_level = "Low"
             elif uv <= 5:
-                uv_level = "Mod"
+                uv_level = "Moderate"
             elif uv <= 7:
                 uv_level = "High"
             else:
