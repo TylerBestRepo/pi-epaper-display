@@ -215,7 +215,7 @@ def display_time_and_weather():
             sun_text = f"☀{weather['sunrise']}"
             draw.text((right_x, y_bottom), sun_text, font=font_small, fill=0)
             
-            moon_text = f"🌙{weather['sunset']}"
+            moon_text = f"◐{weather['sunset']}"  # Half moon symbol
             draw.text((right_x, y_bottom + 12), moon_text, font=font_small, fill=0)
             
             # UV at bottom right
