@@ -151,10 +151,10 @@ def display_time_and_weather():
         y_pos = 15
         
         # Time (large, centered in left area)
-        time_bbox = draw.textbbox((0, 0), time_str, font=font_xlarge)
+        time_bbox = draw.textbbox((0, 0), time_str, font=font_large)
         time_width = time_bbox[2] - time_bbox[0]
         time_x = left_col + (110 - time_width) // 2  # Center in left column
-        draw.text((time_x, y_pos), time_str, font=font_xlarge, fill=0)
+        draw.text((time_x, y_pos), time_str, font=font_large, fill=0)
         y_pos += 35
         
         # Date (centered under time)
