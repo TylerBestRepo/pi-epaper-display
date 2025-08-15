@@ -59,7 +59,7 @@ def get_weather():
         # Melbourne coordinates (change to your city's coordinates)
         lat = -37.91806
         lon = 145.03544
-        
+
         # Enhanced URL with more data including UV index, sunrise/sunset, and apparent temperature
         url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&hourly=apparent_temperature,uv_index&timezone=auto"
         response = requests.get(url, timeout=10)
@@ -171,10 +171,10 @@ def display_time_and_weather():
         y_pos = 12
         
         # Time (large, centered in left area)
-        time_bbox = draw.textbbox((0, 0), time_str, font=font_xlarge)
+        time_bbox = draw.textbbox((0, 0), time_str, font=font_large)
         time_width = time_bbox[2] - time_bbox[0]
         time_x = left_col + (75 - time_width) // 2  # Center in left column
-        draw.text((time_x, y_pos), time_str, font=font_xlarge, fill=0)
+        draw.text((time_x, y_pos), time_str, font=font_large, fill=0)
         y_pos += 28
         
         # Date (centered under time)
