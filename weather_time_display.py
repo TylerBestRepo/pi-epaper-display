@@ -160,7 +160,7 @@ def display_time_and_weather():
         
         # Fonts
         try:
-            font_huge = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 32)
+            font_huge = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 28)
             font_xlarge = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 18)
             font_large = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 14)
             font_medium = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 12)
@@ -173,28 +173,33 @@ def display_time_and_weather():
             font_small = ImageFont.load_default()
         
         if weather:
-            # Main temperature - large and centered at top
+            # Top section - Time and Temperature side by side
+            y_top = 8
+            
+            # Time on the left
+            draw.text((15, y_top), time_str, font=font_huge, fill=0)
+            
+            # Temperature on the right
             temp_text = f"{weather['temp']}°"
             temp_bbox = draw.textbbox((0, 0), temp_text, font=font_huge)
             temp_width = temp_bbox[2] - temp_bbox[0]
-            temp_x = (width - temp_width) // 2
-            draw.text((temp_x, 8), temp_text, font=font_huge, fill=0)
+            temp_x = width - temp_width - 15  # Right aligned with margin
+            draw.text((temp_x, y_top), temp_text, font=font_huge, fill=0)
             
-            # Weather description - centered under temperature
+            # Weather description - centered under the time/temp section
             desc = weather['description']
             if len(desc) > 18:
                 desc = desc[:16] + ".."
             desc_bbox = draw.textbbox((0, 0), desc, font=font_medium)
             desc_width = desc_bbox[2] - desc_bbox[0]
             desc_x = (width - desc_width) // 2
-            draw.text((desc_x, 48), desc, font=font_medium, fill=0)
+            draw.text((desc_x, y_top + 35), desc, font=font_medium, fill=0)
             
             # Bottom row - grouped information in three sections
             y_bottom = 68
             
-            # Left section - Time & Date
-            draw.text((8, y_bottom), time_str, font=font_large, fill=0)
-            draw.text((8, y_bottom + 16), date_str, font=font_small, fill=0)
+            # Left section - Date
+            draw.text((8, y_bottom), date_str, font=font_large, fill=0)
             
             # Middle section - Temperature details
             middle_x = 85
@@ -230,16 +235,17 @@ def display_time_and_weather():
             draw.line([(10, y_bottom - 4), (width - 10, y_bottom - 4)], fill=0, width=1)
             
         else:
-            # Fallback if no weather
+            # Fallback if no weather - still show time prominently
+            draw.text((15, 15), time_str, font=font_huge, fill=0)
+            
             no_weather_text = "Weather Unavailable"
-            bbox = draw.textbbox((0, 0), no_weather_text, font=font_xlarge)
+            bbox = draw.textbbox((0, 0), no_weather_text, font=font_medium)
             text_width = bbox[2] - bbox[0]
             text_x = (width - text_width) // 2
-            draw.text((text_x, 30), no_weather_text, font=font_xlarge, fill=0)
+            draw.text((text_x, 50), no_weather_text, font=font_medium, fill=0)
             
-            # Still show time/date
-            draw.text((20, 70), time_str, font=font_large, fill=0)
-            draw.text((20, 90), date_str, font=font_medium, fill=0)
+            # Date below
+            draw.text((15, 70), date_str, font=font_large, fill=0)
         
         # Border
         draw.rectangle([(2, 2), (width-2, height-2)], outline=0, width=2)
