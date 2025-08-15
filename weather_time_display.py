@@ -3,7 +3,8 @@ import sys
 import os
 import time
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
+import json
 
 # Add the waveshare library to path
 sys.path.append('lib')
@@ -11,9 +12,50 @@ sys.path.append('lib')
 from waveshare_epd import epd2in13_V3  # Use whichever version worked for you
 from PIL import Image, ImageDraw, ImageFont
 
-def get_weather():
-    """Get weather data from OpenMeteo API (free, no API key needed)"""
+# Cache file for weather data
+WEATHER_CACHE_FILE = 'weather_cache.json'
+WEATHER_UPDATE_INTERVAL = 3600  # 60 minutes in seconds
+
+def load_weather_cache():
+    """Load cached weather data if it exists and is recent"""
     try:
+        if os.path.exists(WEATHER_CACHE_FILE):
+            with open(WEATHER_CACHE_FILE, 'r') as f:
+                cache = json.load(f)
+                cache_time = datetime.fromisoformat(cache['timestamp'])
+                
+                # Check if cache is less than 60 minutes old
+                if datetime.now() - cache_time < timedelta(seconds=WEATHER_UPDATE_INTERVAL):
+                    print("Using cached weather data")
+                    return cache['weather_data']
+        return None
+    except Exception as e:
+        print(f"Error loading cache: {e}")
+        return None
+
+def save_weather_cache(weather_data):
+    """Save weather data to cache with timestamp"""
+    try:
+        cache = {
+            'timestamp': datetime.now().isoformat(),
+            'weather_data': weather_data
+        }
+        with open(WEATHER_CACHE_FILE, 'w') as f:
+            json.dump(cache, f)
+        print("Weather data cached")
+    except Exception as e:
+        print(f"Error saving cache: {e}")
+
+def get_weather():
+    """Get weather data from cache or fetch new data if needed"""
+    # Try to load from cache first
+    cached_weather = load_weather_cache()
+    if cached_weather:
+        return cached_weather
+    
+    # Fetch new weather data
+    try:
+        print("Fetching fresh weather data...")
         # Melbourne coordinates (change to your city's coordinates)
         lat = -37.8136
         lon = 144.9631
@@ -43,6 +85,9 @@ def get_weather():
                 'wind_speed': round(current['windspeed']),
                 'city': 'Melbourne'
             }
+            
+            # Save to cache
+            save_weather_cache(weather_info)
             return weather_info
         else:
             print(f"Weather API error: {response.status_code}")
@@ -71,7 +116,7 @@ def display_time_and_weather():
         time_str = now.strftime("%I:%M %p").lstrip('0')  # Remove leading zero
         date_str = now.strftime("%a, %b %d")
         
-        # Get weather
+        # Get weather (from cache or fresh)
         weather = get_weather()
         
         print(f"Displaying: {date_str} {time_str}")
@@ -161,5 +206,28 @@ def display_time_and_weather():
     except Exception as e:
         print(f"Error: {e}")
 
+def run_continuous():
+    """Run the display update in a continuous loop"""
+    print("Starting continuous display updates...")
+    print("Time updates every minute, weather updates every 60 minutes")
+    print("Press Ctrl+C to stop")
+    
+    try:
+        while True:
+            display_time_and_weather()
+            
+            # Wait until the next minute
+            now = datetime.now()
+            seconds_until_next_minute = 60 - now.second
+            print(f"Waiting {seconds_until_next_minute} seconds until next update...")
+            time.sleep(seconds_until_next_minute)
+            
+    except KeyboardInterrupt:
+        print("\nStopping display updates...")
+
 if __name__ == "__main__":
-    display_time_and_weather()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "--continuous":
+        run_continuous()
+    else:
+        display_time_and_weather()
