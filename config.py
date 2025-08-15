@@ -1,5 +1,5 @@
 # Configuration file
 CITY = "Melbourne"
 # Coordinates for Melbourne (change if you're in a different city)
-LATITUDE = -37.8136
-LONGITUDE = 144.9631
+LATITUDE = -37.91806
+LONGITUDE = 145.03544

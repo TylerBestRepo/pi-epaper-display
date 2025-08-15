@@ -57,16 +57,22 @@ def get_weather():
     try:
         print("Fetching fresh weather data...")
         # Melbourne coordinates (change to your city's coordinates)
-        lat = -37.8136
-        lon = 144.9631
+        lat = -37.91806
+        lon = 145.03544
         
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto"
+        # Enhanced URL with more data including UV index, sunrise/sunset, and apparent temperature
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&hourly=apparent_temperature,uv_index&timezone=auto"
         response = requests.get(url, timeout=10)
         
         if response.status_code == 200:
             data = response.json()
             current = data['current_weather']
             daily = data['daily']
+            hourly = data['hourly']
+            
+            # Get current hour index for hourly data
+            current_time = datetime.fromisoformat(current['time'])
+            current_hour = current_time.hour
             
             # Convert weather code to description
             weather_codes = {
@@ -77,12 +83,22 @@ def get_weather():
                 81: "Rain Showers", 82: "Heavy Showers", 95: "Thunderstorm"
             }
             
+            # Parse sunrise/sunset times
+            sunrise_str = daily['sunrise'][0]
+            sunset_str = daily['sunset'][0]
+            sunrise_time = datetime.fromisoformat(sunrise_str).strftime("%I:%M").lstrip('0')
+            sunset_time = datetime.fromisoformat(sunset_str).strftime("%I:%M").lstrip('0')
+            
             weather_info = {
                 'temp': round(current['temperature']),
+                'feels_like': round(hourly['apparent_temperature'][current_hour]),
                 'temp_max': round(daily['temperature_2m_max'][0]),
                 'temp_min': round(daily['temperature_2m_min'][0]),
                 'description': weather_codes.get(current['weathercode'], 'Unknown'),
                 'wind_speed': round(current['windspeed']),
+                'uv_index': round(daily['uv_index_max'][0]),
+                'sunrise': sunrise_time,
+                'sunset': sunset_time,
                 'city': 'Melbourne'
             }
             
@@ -121,7 +137,8 @@ def display_time_and_weather():
         
         print(f"Displaying: {date_str} {time_str}")
         if weather:
-            print(f"Weather: {weather['temp']}°C ({weather['temp_min']}-{weather['temp_max']}°C), {weather['description']}")
+            print(f"Weather: {weather['temp']}°C (feels {weather['feels_like']}°C), {weather['description']}")
+            print(f"Sun: {weather['sunrise']} - {weather['sunset']}, UV: {weather['uv_index']}")
         
         # Create image (remember: height and width are swapped for landscape)
         image = Image.new('1', (epd.height, epd.width), 255)
@@ -133,66 +150,109 @@ def display_time_and_weather():
         
         # Fonts
         try:
-            font_xlarge = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 24)
-            font_large = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 18)
-            font_medium = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 14)
-            font_small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 11)
+            font_xlarge = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 22)
+            font_large = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 16)
+            font_medium = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 12)
+            font_small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 10)
+            font_tiny = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 9)
         except:
             font_xlarge = ImageFont.load_default()
             font_large = ImageFont.load_default()
             font_medium = ImageFont.load_default()
             font_small = ImageFont.load_default()
+            font_tiny = ImageFont.load_default()
         
-        # Layout: Two columns
-        left_col = 10
-        right_col = 130
+        # Layout: Three columns
+        left_col = 8
+        middle_col = 85
+        right_col = 170
         
         # Left column - Time and Date
-        y_pos = 15
+        y_pos = 12
         
         # Time (large, centered in left area)
-        time_bbox = draw.textbbox((0, 0), time_str, font=font_large)
+        time_bbox = draw.textbbox((0, 0), time_str, font=font_xlarge)
         time_width = time_bbox[2] - time_bbox[0]
-        time_x = left_col + (110 - time_width) // 2  # Center in left column
-        draw.text((time_x, y_pos), time_str, font=font_large, fill=0)
-        y_pos += 35
+        time_x = left_col + (75 - time_width) // 2  # Center in left column
+        draw.text((time_x, y_pos), time_str, font=font_xlarge, fill=0)
+        y_pos += 28
         
         # Date (centered under time)
-        date_bbox = draw.textbbox((0, 0), date_str, font=font_medium)
+        date_bbox = draw.textbbox((0, 0), date_str, font=font_small)
         date_width = date_bbox[2] - date_bbox[0]
-        date_x = left_col + (110 - date_width) // 2
-        draw.text((date_x, y_pos), date_str, font=font_medium, fill=0)
+        date_x = left_col + (75 - date_width) // 2
+        draw.text((date_x, y_pos), date_str, font=font_small, fill=0)
+        y_pos += 20
         
-        # Right column - Weather
+        # Sunrise/Sunset
         if weather:
-            y_pos = 15
+            sun_text = f"☀ {weather['sunrise']}"
+            draw.text((left_col, y_pos), sun_text, font=font_tiny, fill=0)
+            y_pos += 12
+            moon_text = f"🌙 {weather['sunset']}"
+            draw.text((left_col, y_pos), moon_text, font=font_tiny, fill=0)
+        
+        # Middle column - Temperature
+        if weather:
+            y_pos = 12
             
             # Current temperature (large)
             temp_text = f"{weather['temp']}°"
-            draw.text((right_col, y_pos), temp_text, font=font_large, fill=0)
-            y_pos += 25
+            draw.text((middle_col, y_pos), temp_text, font=font_large, fill=0)
+            y_pos += 22
+            
+            # Feels like
+            feels_text = f"Feels {weather['feels_like']}°"
+            draw.text((middle_col, y_pos), feels_text, font=font_tiny, fill=0)
+            y_pos += 12
             
             # Min/Max temperatures
             minmax_text = f"{weather['temp_min']}° - {weather['temp_max']}°"
-            draw.text((right_col, y_pos), minmax_text, font=font_small, fill=0)
-            y_pos += 18
+            draw.text((middle_col, y_pos), minmax_text, font=font_small, fill=0)
+            y_pos += 15
             
             # Weather description
             desc = weather['description']
-            if len(desc) > 12:  # Adjust for smaller space
-                desc = desc[:10] + ".."
-            draw.text((right_col, y_pos), desc, font=font_small, fill=0)
+            if len(desc) > 10:
+                desc = desc[:8] + ".."
+            draw.text((middle_col, y_pos), desc, font=font_small, fill=0)
+        
+        # Right column - Additional info
+        if weather:
+            y_pos = 12
+            
+            # UV Index with warning level
+            uv = weather['uv_index']
+            if uv <= 2:
+                uv_level = "Low"
+            elif uv <= 5:
+                uv_level = "Mod"
+            elif uv <= 7:
+                uv_level = "High"
+            elif uv <= 10:
+                uv_level = "V.High"
+            else:
+                uv_level = "Extreme"
+            
+            uv_text = f"UV {uv}"
+            draw.text((right_col, y_pos), uv_text, font=font_small, fill=0)
+            y_pos += 12
+            draw.text((right_col, y_pos), uv_level, font=font_tiny, fill=0)
             y_pos += 15
             
             # Wind speed
-            wind_text = f"{weather['wind_speed']} km/h"
+            wind_text = f"Wind"
             draw.text((right_col, y_pos), wind_text, font=font_small, fill=0)
+            y_pos += 12
+            wind_speed_text = f"{weather['wind_speed']} km/h"
+            draw.text((right_col, y_pos), wind_speed_text, font=font_tiny, fill=0)
         else:
-            draw.text((right_col, 20), "Weather", font=font_small, fill=0)
-            draw.text((right_col, 35), "unavailable", font=font_small, fill=0)
+            draw.text((middle_col, 20), "Weather", font=font_small, fill=0)
+            draw.text((middle_col, 35), "unavailable", font=font_small, fill=0)
         
-        # Vertical divider line
-        draw.line([(125, 10), (125, height-10)], fill=0, width=1)
+        # Vertical divider lines
+        draw.line([(82, 8), (82, height-8)], fill=0, width=1)
+        draw.line([(167, 8), (167, height-8)], fill=0, width=1)
         
         # Border
         draw.rectangle([(2, 2), (width-2, height-2)], outline=0, width=2)
