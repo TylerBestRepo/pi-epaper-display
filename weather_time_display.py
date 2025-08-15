@@ -186,13 +186,14 @@ def display_time_and_weather():
             temp_x = width - temp_width - 15  # Right aligned with margin
             draw.text((temp_x, y_top), temp_text, font=font_huge, fill=0)
             
-            # Weather description - centered under the time/temp section
+            # Weather description - centered under the TEMPERATURE (not the whole section)
             desc = weather['description']
             if len(desc) > 18:
                 desc = desc[:16] + ".."
             desc_bbox = draw.textbbox((0, 0), desc, font=font_medium)
             desc_width = desc_bbox[2] - desc_bbox[0]
-            desc_x = (width - desc_width) // 2
+            # Center the description under the temperature
+            desc_x = temp_x + (temp_width - desc_width) // 2
             draw.text((desc_x, y_top + 35), desc, font=font_medium, fill=0)
             
             # Bottom row - grouped information in three sections
@@ -202,7 +203,7 @@ def display_time_and_weather():
             draw.text((8, y_bottom), date_str, font=font_large, fill=0)
             
             # Middle section - Temperature details
-            middle_x = 100
+            middle_x = 110
             feels_text = f"Feels {weather['feels_like']}°"
             draw.text((middle_x, y_bottom), feels_text, font=font_small, fill=0)
             
