@@ -46,6 +46,25 @@ def save_weather_cache(weather_data):
     except Exception as e:
         print(f"Error saving cache: {e}")
 
+def get_pi_power():
+    """Get Pi's power consumption"""
+    try:
+        # Read voltage from the Pi
+        with open('/sys/class/hwmon/hwmon0/in1_input', 'r') as f:
+            voltage = float(f.read()) / 1000  # Convert to volts
+        
+        # Estimate current based on Pi model (Zero 2W typically draws 0.4-0.8A)
+        estimated_current = 0.6  # Amps (rough estimate for Pi Zero 2W)
+        power_watts = voltage * estimated_current
+        
+        return {
+            'voltage': round(voltage, 1),
+            'power': round(power_watts, 1),
+            'current': estimated_current
+        }
+    except:
+        return None
+
 def get_weather():
     """Get weather data from cache or fetch new data if needed"""
     # Try to load from cache first
@@ -199,8 +218,16 @@ def display_time_and_weather():
             # Bottom row - grouped information in three sections
             y_bottom = 68
             
-            # Left section - Date
+            # Left section - Date and Power
             draw.text((8, y_bottom), date_str, font=font_large, fill=0)
+
+            # Get and display power info
+            power_info = get_pi_power()
+            if power_info:
+                power_text = f"{power_info['power']}W {power_info['voltage']}V"
+                draw.text((8, y_bottom + 16), power_text, font=font_small, fill=0)
+            else:
+                draw.text((8, y_bottom + 16), "Power: N/A", font=font_small, fill=0)
             
             # Middle section - Temperature details
             middle_x = 110
